@@ -22,6 +22,9 @@ contract Streamer is Ownable {
         - updates the balances mapping with the eth received in the function call
         - emits an Opened event
         */
+       require(balances[msg.sender] == 0, "Already funded");
+       balances[msg.sender] += msg.value;
+       emit Opened(msg.sender, msg.value);
     }
 
     function timeLeft(address channel) public view returns (uint256) {
@@ -59,6 +62,14 @@ contract Streamer is Ownable {
             - adjust the channel balance, and pay the contract owner. (Get the owner address withthe `owner()` function)
             - emit the Withdrawn event
         */
+       address signer = ecrecover(prefixedHashed, voucher.sig.v, voucher.sig.r, voucher.sig.s);
+       require(balances[signer] > voucher.updatedBalance);
+       uint total = balances[signer] - voucher.updatedBalance;
+       balances[signer] -= total;
+       balances[owner()] += total;
+       (bool success,) = owner().call{value: total}("");
+       require(success, "Settlement failed");
+       emit Withdrawn(signer, total);
     }
 
     /*
@@ -69,6 +80,7 @@ contract Streamer is Ownable {
     - updates canCloseAt[msg.sender] to some future time
     - emits a Challenged event
     */
+    function challengeChannel() {}
 
     /*
     Checkpoint 6b: Close the channel
