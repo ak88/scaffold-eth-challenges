@@ -478,6 +478,16 @@ function App(props) {
 
       const existingVoucher = vouchers()[clientAddress];
 
+      const packed = ethers.utils.solidityPack(["uint256"], [existingVoucher.updatedBalance]);
+      const hashed = ethers.utils.keccak256(packed);
+      const arrayified = ethers.utils.arrayify(hashed);
+
+      const signerAddress = ethers.utils.verifyMessage(arrayified, existingVoucher.signature);
+      if(signerAddress !== clientAddress){
+        console.error(`message not signed by ${clientAddress}`)
+        return;
+      }
+
       // update our stored voucher if this new one is more valuable
       if (existingVoucher === undefined || updatedBalance.lt(existingVoucher.updatedBalance)) {
         vouchers()[clientAddress] = voucher.data;
